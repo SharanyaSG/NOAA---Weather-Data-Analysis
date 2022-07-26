@@ -1,0 +1,207 @@
+---
+title: "NOAA STORM DATA ANALYSIS"
+author: "Sharanya Gowda"
+date: "July 25, 2022"
+output:
+  html_document: default
+  pdf_document: default
+subtitle: 'Peer Graded Assignment: Course Project 2'
+---
+**************************************************************************************************************************************************************************
+
+### 1. SYNOPSIS
+In response to the requirements of Peer Graded Assignment: Course Project 2, I present the following **analysis on severe weather events** to the government. The detailed description and summary of **NOAA Storm Data Analysis** is provided from *Sections 1.1* to *Section 1.4*.
+
+### 1.1. Background
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+### 1.2. Objective 
+
+The *goal* of this analysis is to explore the NOAA Storm Database and answer the following questions:
+
+  * Across the United States, which types of events (as indicated in the `EVTYPE` variable) are most harmful with respect to population health?
+  * Across the United States, which types of events have the greatest economic consequences?
+
+### 1.3. Government Furnished Information (GFI)
+
+The data for this assignment come in the form of a comma-separated-value file compressed via the bzip2 algorithm to reduce its size. You can download the file from the course web site [Storm Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) 
+
+There is also some documentation of the database available. Here you will find how some of the variables are constructed/defined.
+
+  * [National Weather Service Storm Data Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf)
+  * [National Climatic Data Center Storm Events FAQ](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf)
+
+The events in the database start in the year 1950 and end in November 2011. In the earlier years of the database there are generally fewer events recorded, most likely due to a lack of good records. More recent years should be considered more complete.
+
+### 1.4. Tech Stack
+
+The following *tools* were utilized for this assignment:
+
+  * **RStudio** - Used to edit/write the analysis and publish the completed analysis document to RPubs. 
+  * **knitr** - knitr package used to compile the R Markdown document and convert it to HTML.
+
+**************************************************************************************************************************************************************************
+
+### 2. DATA PROCESSING
+
+There should be a section titled Data Processing which describes (in words and code) how the data were loaded into R and processed for analysis. In particular, your analysis must start from the raw CSV file containing the data. You cannot do any pre-processing outside the document. If pre-processing is time-consuming you may consider using the `cache = TRUE` option for certain code chunks.
+
+### 2.1. Load Packages 
+
+Load relevant packages required for the analysis.
+
+```{r, echo=T}
+library(data.table)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+```
+
+### 2.2. Data File Download 
+
+Download data file from the website using the link [Storm Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) 
+
+```{r, echo=T}
+if (!file.exists("StormData.csv.bz2")) {
+    fileURL <- 'https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2'
+    download.file(fileURL, destfile='StormData.csv.bz2', method = 'curl')
+}
+```
+
+### 2.3. Preliminary Data Analysis
+
+Read downloaded data table.
+
+```{r, echo=T, cache=T}
+Read_Storm_Data <- read.csv(bzfile('StormData.csv.bz2'),header=TRUE, stringsAsFactors = FALSE)
+
+```
+
+Analyze the preliminary data.
+
+```{r, echo=T, cache=T}
+
+#summary(Read_Storm_Data)
+head(Read_Storm_Data, 5)
+
+```
+
+**************************************************************************************************************************************************************************
+
+### 3. HARMFUL EVENTS
+
+To understand which types of events are most harmful to population health, both, **injuries** and **fatalities** caused by various weather events must be analyzed.
+
+### 3.1. Injuries cause by Weather Events 
+
+Calculate total number of Injuries caused by individual Weather Events. 
+
+```{r, echo = T}
+Storm_Injuries <- aggregate(Read_Storm_Data$INJURIES, by = list(Read_Storm_Data$EVTYPE), "sum")
+names(Storm_Injuries) <- c("WeatherEvent", "Injuries")
+Storm_Injuries_Display<- Storm_Injuries[order(-Storm_Injuries$Injuries), ][1:15, ]
+Storm_Injuries_Display
+```
+
+### 3.2. Fatalities cause by Weather Events 
+
+Calculate total number of Fatalities caused by individual Weather Events.
+
+```{r, echo = T}
+Storm_Fatalities <- aggregate(Read_Storm_Data$FATALITIES, by = list(Read_Storm_Data$EVTYPE), "sum")
+names(Storm_Fatalities) <- c("WeatherEvent", "Fatalities")
+Storm_Fatalities_Display <- Storm_Fatalities[order(-Storm_Fatalities$Fatalities), ][1:15, ]
+Storm_Fatalities_Display
+```
+
+### 3.3. Injury and Fatality Plot 
+
+Plot Injuries and Fatalities caused by Weather Events to analyze which types of events are most harmful with respect to population health, across the United States. 
+
+```{r, echo = T}
+
+par(mfrow = c(1, 2), mar = c(10, 4, 2, 2), las = 3, cex = 0.7, cex.main = 1.4, cex.lab = 1.2, lwd=1.5)
+
+barplot(Storm_Injuries_Display$Injuries, names.arg = Storm_Injuries_Display$WeatherEvent, col="darkgreen",density=30,lwd=3, main="WEATHER RELATED INJURIES (Top 10)", ylab='Number of Injuries')
+
+barplot(Storm_Fatalities_Display$Fatalities, names.arg = Storm_Fatalities_Display$WeatherEvent, col="maroon", density=30, lwd=3, main="WEATHER RELATED FATALITIES (Top 10)", ylab="Number of Fatalities")
+
+```
+**************************************************************************************************************************************************************************
+
+### 4. WEATHER EVENTS CAUSING GREATEST ECONOMIC CRISIS
+
+To understand which types of weather events have the greatest economic consequences, both, **crop damages** and **cost of property** must be analyzed.
+
+### 4.1. Weather Events causing Crop Damages 
+
+Calculate weather events causing crop damages.
+
+```{r, echo=T}
+ec_Crop <- aggregate(Read_Storm_Data$CROPDMG, by = list(Read_Storm_Data$EVTYPE), "sum")
+names(ec_Crop) <- c("WeatherEvent", "Crop")
+ec_Crop_Display <- ec_Crop[order(-ec_Crop$Crop), ][1:15, ]
+ec_Crop_Display
+```
+
+### 4.2. Weather Events causing Property Damage
+
+Calculate weather events causing property damage. 
+
+```{r, echo=T}
+ec_Property <- aggregate(Read_Storm_Data$PROPDMG, by = list(Read_Storm_Data$EVTYPE), "sum")
+names(ec_Property) <- c("WeatherEvent", "Property")
+ec_Property_Display <- ec_Property[order(-ec_Property$Property), ][1:15, ]
+ec_Property_Display
+```
+
+### 4.3. Crop Damages and Cost of Property Plot
+
+Calculate total economic consequences caused by cost of property. 
+
+```{r, echo=T}
+
+par(mfrow = c(1, 2), mar = c(7, 5, 7, 2), las = 3, cex = 0.7, cex.main = 1.4, cex.lab = 1.2)
+
+barplot(ec_Crop_Display$Crop, names.arg = ec_Crop_Display$WeatherEvent, col="purple",density=30,lwd=3,main = "WEATHER CROP DAMAGE (Top 15)", ylab = "Crop Damage", ylim = c(0, 3500000))
+
+barplot(ec_Property_Display$Property, names.arg = ec_Property_Display$WeatherEvent, col="darkorange",density=30,lwd=3,main = "WEATHER PROPERTY DAMAGE (Top 15)", ylab = "Property Damage", ylim = c(0, 3500000))
+
+```
+
+### 4.4. Total Damage
+
+Total Damage = Crop Damage + Property Damage
+
+```{r, echo=T}
+Total_Damage <- aggregate(Read_Storm_Data$CROPDMG+Read_Storm_Data$PROPDMG, by = list(Read_Storm_Data$EVTYPE), "sum")
+names(Total_Damage) <- c("WeatherEvent", "TotalDamage")
+Total_Damage_Display <- Total_Damage[order(-Total_Damage$TotalDamage), ][1:15, ]
+Total_Damage_Display
+
+```
+
+### 4.5. Total Damage Plot
+
+Total Damage = Crop Damage + Property Damage
+
+```{r, echo=T}
+par(mfrow = c(1,1), mar = c(10, 4, 2, 2), las = 3, cex = 0.7, cex.main = 1.4, cex.lab = 1.2)
+barplot(Total_Damage_Display$TotalDamage, names.arg = Total_Damage_Display$WeatherEvent, col="darkgray",density=20,lwd=3, main = 'TOTAL WEATHER DAMAGE (Top 15) ', ylab = 'Total Damage', ylim = c(0, 3500000))
+
+```
+
+### 5. RESULTS
+
+The analysis on the U.S. National Oceanic and Atmospheric Administration’s (NOAA) storm database shows us that: 
+
+  * The weather event that is the *most harmful* with respect to population health across the United States are **Tornados**.
+    * The *second most harmful* weather event is **Excessive Heat**.
+    
+    
+  * The weather event that causes the *greatest economic consequences* are **Tornados**.
+    * The *second greatest cause* for economic concequences are **Flash Floods**.
+ 
